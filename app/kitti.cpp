@@ -37,43 +37,36 @@ int main (int argc, char** argv) {
 
             // allocate memory for disparity images
             const int32_t dims[3] = {width,height,width}; // bytes per line = width
-            float* D1_data = (float*)malloc(width*height*sizeof(float));
-            float* D2_data = (float*)malloc(width*height*sizeof(float));
+            cv::Mat1f D1_data(height, width);
+            cv::Mat1f D2_data(height, width);
 
             // process
             Elas::parameters param;
             param.postprocess_only_left = false;
             Elas elas(param);
-            uchar* left_ptr = reinterpret_cast<uchar*>(image_left.data);
-            uchar* right_ptr = reinterpret_cast<uchar*>(image_right.data);
-            elas.process(left_ptr,right_ptr,D1_data,D2_data,dims);
-
-            // find maximum disparity for scaling output disparity images to [0..255]
-            float disp_max = 0;
-            for (int32_t i=0; i<width*height; i++) {
-                if (D1_data[i]>disp_max) disp_max = D1_data[i];
-                if (D2_data[i]>disp_max) disp_max = D2_data[i];
-            }
+            float* D_left_ptr = reinterpret_cast<float*>(D1_data.data);
+            float* D_right_ptr = reinterpret_cast<float*>(D2_data.data);
+            elas.process(image_left.data,image_right.data,D_left_ptr,D_right_ptr,dims);
 
             // copy float to uchar
-            image<uchar> *D1 = new image<uchar>(width,height);
-            image<uchar> *D2 = new image<uchar>(width,height);
-            for (int32_t i=0; i<width*height; i++) {
-                D1->data[i] = (uint8_t)max(255.0*D1_data[i]/disp_max,0.0);
-                D2->data[i] = (uint8_t)max(255.0*D2_data[i]/disp_max,0.0);
-            }
 
+            cv::Mat1b D1(height, width);
+            cv::Mat1b D2(height, width);
 
+            double min, max;
+            cv::minMaxLoc(D1_data, &min, &max);
+            D1_data.convertTo(D1,CV_8U,255.0/max);
+            cv::minMaxLoc(D2_data, &min, &max);
+            D2_data.convertTo(D2,CV_8U,255.0/max);
+            std::cout << "min max :" << min << " " <<max << std::endl;
 
-            savePGM(D1,output_1.c_str());
-            savePGM(D2,output_2.c_str());
+            cv::imshow("D1", D1);
+            cv::imshow("D2", D2);
+            cv::waitKey(1);
 
-            // free memory
+//            savePGM(D1,output_1.c_str());
+//            savePGM(D2,output_2.c_str());
 
-            delete D1;
-            delete D2;
-            free(D1_data);
-            free(D2_data);
             cnt ++;
 
     }
