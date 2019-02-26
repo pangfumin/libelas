@@ -222,6 +222,9 @@ private:
   
   // parameter set
   parameters param;
+
+  // intermediate
+  std::vector<support_pt> p_support_;
   
   // memory aligned input images + dimensions
   uint8_t *I1,*I2;

@@ -60,10 +60,10 @@ void Elas::process (uint8_t* I1_,uint8_t* I2_,float* D1,float* D2,const int32_t*
 #ifdef PROFILE
   timer.start("Support Matches");
 #endif
-  vector<support_pt> p_support = computeSupportMatches(desc1.I_desc,desc2.I_desc);
+   p_support_ = computeSupportMatches(desc1.I_desc,desc2.I_desc);
   
   // if not enough support points for triangulation
-  if (p_support.size()<3) {
+  if (p_support_.size()<3) {
     cout << "ERROR: Need at least 3 support points!" << endl;
     _mm_free(I1);
     _mm_free(I2);
@@ -73,14 +73,14 @@ void Elas::process (uint8_t* I1_,uint8_t* I2_,float* D1,float* D2,const int32_t*
 #ifdef PROFILE
   timer.start("Delaunay Triangulation");
 #endif
-  vector<triangle> tri_1 = computeDelaunayTriangulation(p_support,0);
-  vector<triangle> tri_2 = computeDelaunayTriangulation(p_support,1);
+  vector<triangle> tri_1 = computeDelaunayTriangulation(p_support_,0);
+  vector<triangle> tri_2 = computeDelaunayTriangulation(p_support_,1);
 
 #ifdef PROFILE
   timer.start("Disparity Planes");
 #endif
-  computeDisparityPlanes(p_support,tri_1,0);
-  computeDisparityPlanes(p_support,tri_2,1);
+  computeDisparityPlanes(p_support_,tri_1,0);
+  computeDisparityPlanes(p_support_,tri_2,1);
 
 #ifdef PROFILE
   timer.start("Grid");
@@ -93,14 +93,14 @@ void Elas::process (uint8_t* I1_,uint8_t* I2_,float* D1,float* D2,const int32_t*
   int32_t* disparity_grid_1 = (int32_t*)calloc((param.disp_max+2)*grid_height*grid_width,sizeof(int32_t));
   int32_t* disparity_grid_2 = (int32_t*)calloc((param.disp_max+2)*grid_height*grid_width,sizeof(int32_t));
   
-  createGrid(p_support,disparity_grid_1,grid_dims,0);
-  createGrid(p_support,disparity_grid_2,grid_dims,1);
+  createGrid(p_support_,disparity_grid_1,grid_dims,0);
+  createGrid(p_support_,disparity_grid_2,grid_dims,1);
 
 #ifdef PROFILE
   timer.start("Matching");
 #endif
-  computeDisparity(p_support,tri_1,disparity_grid_1,grid_dims,desc1.I_desc,desc2.I_desc,0,D1);
-  computeDisparity(p_support,tri_2,disparity_grid_2,grid_dims,desc1.I_desc,desc2.I_desc,1,D2);
+  computeDisparity(p_support_,tri_1,disparity_grid_1,grid_dims,desc1.I_desc,desc2.I_desc,0,D1);
+  computeDisparity(p_support_,tri_2,disparity_grid_2,grid_dims,desc1.I_desc,desc2.I_desc,1,D2);
 
 #ifdef PROFILE
   timer.start("L/R Consistency Check");
@@ -859,6 +859,7 @@ void Elas::computeDisparity(vector<support_pt> p_support,vector<triangle> tri,in
     float C_u = tri_u[2]; float C_v = tri_v[2];
     
     // compute straight lines connecting triangle corners
+    // 计算通过两个点的直线  v = au + b  for (u,v)
     float AB_a = 0; float AC_a = 0; float BC_a = 0;
     if ((int32_t)(A_u)!=(int32_t)(B_u)) AB_a = (A_v-B_v)/(A_u-B_u);
     if ((int32_t)(A_u)!=(int32_t)(C_u)) AC_a = (A_v-C_v)/(A_u-C_u);
